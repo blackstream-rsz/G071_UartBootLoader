@@ -7,9 +7,10 @@
 #define hTargetUart					huart4
 #define TARGET_USART					USART4
 
-/* boot loader コマンド */
+/* Boot from System Memory 起動コマンド */
 const uint8_t CMD_BOOT_LOADER_MODE[]	={0x7F};
 
+/* boot loader コマンド */
 const uint8_t BTL_CMD_GET[]			=	{0x00,0xff};	
 const uint8_t BTL_CMD_GID[]			=	{0x02,0xfd};	
 const uint8_t BTL_CMD_ReadMemory[]	=	{0x11,0xee};
