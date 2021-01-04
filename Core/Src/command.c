@@ -15,6 +15,7 @@ const uint8_t BTL_CMD_GET[]			=	{0x00,0xff};
 const uint8_t BTL_CMD_GID[]			=	{0x02,0xfd};	
 const uint8_t BTL_CMD_ReadMemory[]	=	{0x11,0xee};
 const uint8_t BTL_CMD_WriteMemory[] =	{0x31,0xce};
+const uint8_t BTL_CMD_ERASE[]		= 	{0x44,0xbb};
 
 #define ACK									0x79
 #define NACK								0x1F
@@ -74,6 +75,9 @@ static void Stm32BTL_CMD_CallBack1_FW_WriteMemory(void);
 static void Stm32BTL_CMD_CallBack2_FW_WriteMemory(void);
 static void Stm32BTL_CMD_CallBack3_FW_WriteMemory(void);
 
+static void Stm32BTL_CMD_GlobalErase(void);
+static void Stm32BTL_CMD_CallBack1_GlobalErase(void);
+static void Stm32BTL_CMD_CallBack2_GlobalErase(void);
 
 static  void PC_CommandParser(void)
 {
@@ -102,8 +106,11 @@ static  void PC_CommandParser(void)
 	else if(pc_rx_buff[0] == 'd') {	/* Get CMD */
 		Stm32BTL_CMD_GET();
 	}
-	else if(pc_rx_buff[0] == 'e') {	/* Get CMD */
+	else if(pc_rx_buff[0] == 'e') {	/* Firm Write */
 		Stm32BTL_CMD_FIRM_WRITE();
+	}
+		else if(pc_rx_buff[0] == 'f') {	/* Flash Global Erase */
+		Stm32BTL_CMD_GlobalErase();
 	}
 	HAL_UART_Receive_DMA(&huart2, pc_rx_buff, 1);
 }
@@ -342,6 +349,39 @@ static void Stm32BTL_CMD_CallBack3_FW_WriteMemory(void)
 	}
 	else {
 		len = sprintf((char*)pc_tx_buff,"WriteMemory Address Checksum NACK\r\n");
+		HAL_UART_Transmit_DMA(&huart2, pc_tx_buff, len);
+	}
+}
+
+static void Stm32BTL_CMD_GlobalErase(void)
+{
+	Stm32BTL_SendRecvCommand((uint8_t*)BTL_CMD_ERASE,2,stm32_btl_com.rx_buff,1,Stm32BTL_CMD_CallBack1_GlobalErase);
+}
+
+static void Stm32BTL_CMD_CallBack1_GlobalErase(void)
+{
+	int32_t len;
+	if(stm32_btl_com.rx_buff[0] == ACK) {
+		stm32_btl_com.tx_buff[0] = 0xff;
+		stm32_btl_com.tx_buff[1] = 0xff;
+		stm32_btl_com.tx_buff[2] = 0xff ^ 0xff;
+		Stm32BTL_SendRecvCommand(stm32_btl_com.tx_buff,3,stm32_btl_com.rx_buff,1,Stm32BTL_CMD_CallBack2_GlobalErase);
+	}
+	else {
+		len = sprintf((char*)pc_tx_buff,"NACK\r\n");
+		HAL_UART_Transmit_DMA(&huart2, pc_tx_buff, len);
+	}
+}
+
+static void Stm32BTL_CMD_CallBack2_GlobalErase(void)
+{
+	int32_t len;
+	if(stm32_btl_com.rx_buff[0] == ACK) {
+		len = sprintf((char*)pc_tx_buff,"ACK GLOBAL ERASE\r\n");
+		HAL_UART_Transmit_DMA(&huart2, pc_tx_buff, len);
+	}
+	else {
+		len = sprintf((char*)pc_tx_buff,"NACK\r\n");
 		HAL_UART_Transmit_DMA(&huart2, pc_tx_buff, len);
 	}
 }
